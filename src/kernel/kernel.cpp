@@ -1,6 +1,7 @@
 #include "io.h"
 #include "idt.h"
 #include "pic.h"
+#include <cstdint>
 
 unsigned short* video_memory = (unsigned short*)0xb8000;
 int cursor_pos = 0;
@@ -74,10 +75,10 @@ extern "C" void kernel_main(void) {
 
 
     for (int i = 0; i < 256; i++) {
-        set_idt_gate(i, (unsigned int)&dummy_isr);
+        set_idt_gate(i, (uint64_t)&dummy_isr);
     }
     
-    set_idt_gate(33, (unsigned int)&keyboard_isr);
+    set_idt_gate(33, (uint64_t)&keyboard_isr);
     
     set_idt();
     
