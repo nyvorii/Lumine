@@ -73,6 +73,8 @@ extern "C" void kernel_main(void) {
     
     remap_pic(); 
 
+    outb(0x21, 0xFD); 
+    outb(0xA1, 0xFF);
 
     for (int i = 0; i < 256; i++) {
         set_idt_gate(i, (uint64_t)&dummy_isr);
@@ -87,7 +89,7 @@ extern "C" void kernel_main(void) {
     
     asm volatile("sti");
 
-    const char* str = "Pancerne IDT! Wcisnij klawisz: ";
+    const char* str = "Witaj w Lumine Systemie 64bitowy";
     for (int i = 0; str[i] != '\0'; ++i) {
         video_memory[cursor_pos] = (unsigned short)str[i] | (0x0F << 8);
         cursor_pos++;

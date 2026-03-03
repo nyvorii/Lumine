@@ -19,6 +19,8 @@ keyboard_isr:
     push r10
     push r11
 
+    cld    
+
     call keyboard_handler
 
     pop r11
