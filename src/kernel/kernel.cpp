@@ -2,10 +2,19 @@
 #include "idt.h"
 #include "pic.h"
 #include <cstdint>
+#include "printf.h"
+#include "shell.h"
+
+static bool left_shift_pressed = false;
+static bool right_shift_pressed = false;
 
 unsigned short* video_memory = (unsigned short*)0xb8000;
 int cursor_pos = 0;
 bool caps_lock = false;
+
+#define SHELL_BUFFER_SIZE 256
+char shell_buffer[SHELL_BUFFER_SIZE];
+int shell_buffer_index = 0;
 
 const char scancode_to_ascii[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',   
@@ -14,13 +23,15 @@ const char scancode_to_ascii[128] = {
  '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0, '*',   0, ' '
 };
 
+const char scancode_to_ascii_shifted[128] = {
+    0,  27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
+  '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
+    0,  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '\"', '~',  0,
+  '|',  'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?',   0, '*',  0,
+   ' ',   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,  0,
+    0,    0,   0, '-',   0,   0,   0, '+',   0,   0,   0,   0,   0,  0,
+};
 
-void update_cursor(int pos) {
-    outb(0x3D4, 14); 
-    outb(0x3D5, (pos >> 8) & 0xFF); 
-    outb(0x3D4, 15);
-    outb(0x3D5, pos & 0xFF);
-}
 
 
 extern "C" void keyboard_isr();
@@ -28,35 +39,31 @@ extern "C" void keyboard_isr();
 extern "C" void keyboard_handler() {
     unsigned char scancode = inb(0x60);
 
-    if (!(scancode & 0x80)) {
-        
-        if (scancode == 0x3A) {
-            caps_lock = !caps_lock; 
-        } 
-        else {
-            char c = scancode_to_ascii[scancode];
-            
-            if (c != 0) {
-               
-                if (caps_lock && c >= 'a' && c <= 'z') {
-                    c -= 32; 
-                }
+    if (scancode == 0x2A) left_shift_pressed = true;
+    else if (scancode == 0xAA) left_shift_pressed = false;
+    else if (scancode == 0x36) right_shift_pressed = true;
+    else if (scancode == 0xB6) right_shift_pressed = false;
 
-                if (c == '\n') {
-                    cursor_pos = (cursor_pos / 80 + 1) * 80;
-                } 
-                else if (c == '\b') {
-                    if (cursor_pos > 0) {
-                        cursor_pos--;
-                        video_memory[cursor_pos] = (unsigned short)' ' | (0x0F << 8);
-                    }
-                }
-                else {
-                    video_memory[cursor_pos] = (unsigned short)c | (0x0F << 8);
-                    cursor_pos++;
-                }
-                
-                update_cursor(cursor_pos);
+    else if (!(scancode & 0x80)) {
+        bool is_shifted = left_shift_pressed || right_shift_pressed;
+        char c = is_shifted ? scancode_to_ascii_shifted[scancode] : scancode_to_ascii[scancode];
+
+        if (c == '\n') {
+            shell_buffer[shell_buffer_index] = '\0'; 
+            execute_command(shell_buffer);
+            shell_buffer_index = 0; 
+            printf("Lumine> ");
+        }
+        else if (c == '\b') {
+            if (shell_buffer_index > 0) {
+                shell_buffer_index--;
+                printf("\b \b");
+            }
+        }
+        else if (c != 0) {
+            if (shell_buffer_index < SHELL_BUFFER_SIZE - 1) {
+                shell_buffer[shell_buffer_index++] = c;
+                printf("%c", c);
             }
         }
     }
@@ -89,11 +96,10 @@ extern "C" void kernel_main(void) {
     
     asm volatile("sti");
 
-    const char* str = "Witaj w Lumine Systemie 64bitowy";
-    for (int i = 0; str[i] != '\0'; ++i) {
-        video_memory[cursor_pos] = (unsigned short)str[i] | (0x0F << 8);
-        cursor_pos++;
-    }
+    clear_screen();
+    printf("Welcome to Lumine OS!\n");
+    printf("Type 'help' for a list of commands.\n");
+    printf("Lumine> ");
 
     while (1) {
         asm volatile("hlt"); 
