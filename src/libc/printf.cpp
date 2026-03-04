@@ -207,6 +207,7 @@ int printf(const char* format, ...) {
                 return -1;
             }
         }
+        // obsługa specyfikatora %d i %i
         else if (*format == 'd' || *format == 'i'){
             format++;
             int value = va_arg(parameters, int);
