@@ -4,6 +4,11 @@
 #include <cstdint>
 #include "printf.h"
 #include "shell.h"
+#include "timer.h"
+
+extern volatile uint64_t timer_ticks;
+extern "C" void timer_isr();
+
 
 static bool left_shift_pressed = false;
 static bool right_shift_pressed = false;
@@ -49,6 +54,8 @@ extern "C" void keyboard_handler() {
         char c = is_shifted ? scancode_to_ascii_shifted[scancode] : scancode_to_ascii[scancode];
 
         if (c == '\n') {
+            printf("\n");
+
             shell_buffer[shell_buffer_index] = '\0'; 
             execute_command(shell_buffer);
             shell_buffer_index = 0; 
@@ -71,6 +78,11 @@ extern "C" void keyboard_handler() {
     outb(0x20, 0x20);
 }
 
+extern "C" void timer_handler(){
+    timer_ticks++;
+    outb(0x20, 0x20);
+}
+
 extern "C" void dummy_isr(); 
 
 extern "C" void kernel_main(void) {
@@ -80,7 +92,7 @@ extern "C" void kernel_main(void) {
     
     remap_pic(); 
 
-    outb(0x21, 0xFD); 
+    outb(0x21, 0xFC); 
     outb(0xA1, 0xFF);
 
     for (int i = 0; i < 256; i++) {
@@ -88,10 +100,12 @@ extern "C" void kernel_main(void) {
     }
     
     set_idt_gate(33, (uint64_t)&keyboard_isr);
-    
+    set_idt_gate(32, (uint64_t)&timer_isr);
     set_idt();
     
-    outb(0x21, 0xFD); 
+    timer_init(1000);
+
+    outb(0x21, 0xFC); 
     outb(0xA1, 0xFF);
     
     asm volatile("sti");
@@ -99,6 +113,9 @@ extern "C" void kernel_main(void) {
     clear_screen();
     printf("Welcome to Lumine OS!\n");
     printf("Type 'help' for a list of commands.\n");
+    printf("Wskaznik VGA znajduje sie pod adresem: %x\n", 0xB8000); 
+    printf("Wskaznik VGA znajduje sie pod adresem: %x\n", video_memory);
+    printf("Wskaznik VGA znajduje sie pod adresem: %x\n", &video_memory);
     printf("Lumine> ");
 
     while (1) {
