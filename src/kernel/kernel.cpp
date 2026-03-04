@@ -5,6 +5,7 @@
 #include "printf.h"
 #include "shell.h"
 #include "timer.h"
+#include "logger.h"
 
 extern volatile uint64_t timer_ticks;
 extern "C" void timer_isr();
@@ -116,6 +117,10 @@ extern "C" void kernel_main(void) {
     printf("Wskaznik VGA znajduje sie pod adresem: %x\n", 0xB8000); 
     printf("Wskaznik VGA znajduje sie pod adresem: %x\n", video_memory);
     printf("Wskaznik VGA znajduje sie pod adresem: %x\n", &video_memory);
+    klog(INFO, "Lumine OS is starting...");
+    klog(DEBUG, "Testing timer interrupts...");
+    klog(WARNING, "This is a warning message.");
+    klog(ERROR, "This is an error message.");
     printf("Lumine> ");
 
     while (1) {

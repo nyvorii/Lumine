@@ -15,6 +15,15 @@ volatile uint16_t* vga_buffer = (uint16_t*)0xB8000;
 static size_t terminal_row = 0;
 static size_t terminal_column = 0;
 
+enum LogLevel {
+    INFO,
+    WARNING,
+    ERROR,
+    DEBUG
+};
+
+uint8_t terminal_color = 0x0F;
+
 void scroll(){
     for (size_t y = 1; y < 25; y++){
         for (size_t x = 0; x < 80; x++){
@@ -51,7 +60,15 @@ void clear_screen() {
     update_cursor(terminal_column, terminal_row);
 }
 
+
+void set_terminal_color(uint8_t fg, uint8_t bg) {
+    terminal_color = fg | (bg << 4);
+}
+
 int putchar(int ic){
+    
+
+
     char c = (char)ic;
 
     if (c == '\b'){
@@ -83,8 +100,7 @@ int putchar(int ic){
 
 const size_t index = terminal_row * 80 + terminal_column;
 
-vga_buffer[index] = (uint16_t) c | (uint16_t)0x0F00;
-
+vga_buffer[index] = (uint16_t) c | (uint16_t)(terminal_color << 8);
 terminal_column++;
 
 if (terminal_column >= 80){
