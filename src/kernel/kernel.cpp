@@ -6,10 +6,14 @@
 #include "shell.h"
 #include "timer.h"
 #include "logger.h"
+#include "pmm.h"
 
 extern volatile uint64_t timer_ticks;
 extern "C" void timer_isr();
 
+extern "C" void __stack_chk_fail(void) {
+    while(1);
+}
 
 static bool left_shift_pressed = false;
 static bool right_shift_pressed = false;
@@ -110,6 +114,19 @@ extern "C" void kernel_main(void) {
     outb(0xA1, 0xFF);
     
     asm volatile("sti");
+
+    klog(INFO, "START PMM...");
+    uint64_t memory_size = 128 * 1024 * 1024;
+    pmm_init(0x400000, memory_size);
+
+    pmm_init_region(0x800000, memory_size = 0x800000);
+
+    klog(INFO, "PMM: Ready to work");
+    void* nowa_ramka = pmm_alloc_frame();
+
+    
+    // Rzutujemy wskaźnik na liczby, żeby printf %x to ładnie przełknął
+    printf("Zaalokowano wolna ramke pamieci pod adresem: 0x%x\n", (uint32_t)(uint64_t)nowa_ramka);
 
     clear_screen();
     printf("Welcome to Lumine OS!\n");
