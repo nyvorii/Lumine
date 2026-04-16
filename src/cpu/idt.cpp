@@ -8,7 +8,6 @@ idt_register_t idt_reg;
 void set_idt_gate(int n, uint64_t handler) {
     idt[n].offset_low  = (uint16_t)(handler & 0xFFFF);
     
-    // ZMIEŃ TĘ LINIJKĘ NA TWARDĄ WARTOŚĆ:
     idt[n].selector    = 0x08; 
     
     idt[n].ist         = 0;
