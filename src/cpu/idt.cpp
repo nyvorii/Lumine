@@ -4,7 +4,7 @@
 idt_gate_t idt[256];
 idt_register_t idt_reg;
 
-// Zauważ zmianę typu handlera na uint64_t!
+
 void set_idt_gate(int n, uint64_t handler) {
     idt[n].offset_low  = (uint16_t)(handler & 0xFFFF);
     
